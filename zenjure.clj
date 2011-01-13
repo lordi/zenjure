@@ -3,17 +3,16 @@
 (defn parse-rule [s]
   (let [mat (re-matches #"^/(.{0,60})/$" s)]
     (if mat (re-pattern (second mat)))))
-(defn true-koan? [rule koan] (< 0 (count (re-find rule koan))))
+(defn true-koan? [rule koan] (not (empty? (re-find rule koan))))
 (defn generate-koans [] (for [x "abc" y "abc" z "abc"] (str x y z)))
 (def library [
-              [#"^a" {"abc" true, "cba" false}]
-              [#"^b" {"bcb" true, "aba" false}]
-              [#"^c" {"ccb" true, "bba" false}]
-              [#"aaa" {"aaa" true, "aba" false}]
+              [#"^a"      {"abc" true, "cba" false}]
+              [#"^b"      {"bcb" true, "aba" false}]
+              [#"^c"      {"ccb" true, "bba" false}]
+              [#"aaa"     {"aaa" true, "aba" false}]
               [#"[ab]{3}" {"aba" true, "cba" false}]
-              [#"c.c" {"ccc" true, "abc" false}]
-              ]
-  )
+              [#"c.c"     {"ccc" true, "abc" false}]
+              ])
 
 ;; zenjure part
 (defn validate-library [] 
@@ -45,4 +44,4 @@
   (console-line r cache))
 
 (validate-library)
-(apply start-game (second library))
+(apply start-game (second library)) ; (randnth library)
