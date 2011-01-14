@@ -7,7 +7,7 @@
    :parse-koan #(re-matches #"^[abc]{3}$" %)
    :parse-rule #(let [mat (re-matches #"^/(.{0,60})/$" %)]
                   (if mat (re-pattern (second mat))))
-   :true-koan? (fn [rule koan] (not (empty? (re-find rule koan))))
+   :true? (fn [rule koan] (not (empty? (re-find rule koan))))
    :generate-koans #(for [x "abc" y "abc" z "abc"] (str x y z))
    :library [
              [#"^a"      {"abc" true, "cba" false}]
@@ -22,7 +22,7 @@
 ;; zenjure part
 (defn validate-library [zj] 
   (let [invalid-entries (filter 
-                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((zj :true-koan?) r k)))) ex))))
+                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((zj :true?) r k)))) ex))))
                           (zj :library))]
     (if (not (empty? invalid-entries))
       (println "Warning: Invalid examples in the library:" invalid-entries))))
@@ -33,13 +33,13 @@
         koan ((zj :parse-koan) input)
         rule ((zj :parse-rule) input)]
     (if koan
-      (let [ncache (assoc cache koan ((zj :true-koan?) r koan))]
+      (let [ncache (assoc cache koan ((zj :true?) r koan))]
         (println (ncache koan))
         (recur zj r ncache))
       (if rule
-        (let [contradict (filter (fn [[k v]] (not (= v ((zj :true-koan?) rule k)))) cache)]
+        (let [contradict (filter (fn [[k v]] (not (= v ((zj :true?) rule k)))) cache)]
           (if (empty? contradict)
-            (if (empty? (filter #(not (= ((zj :true-koan?) r %) ((zj :true-koan?) rule %))) ((zj :generate-koans))))
+            (if (empty? (filter #(not (= ((zj :true?) r %) ((zj :true?) rule %))) ((zj :generate-koans))))
               (println "Congrats, you reached enlightment! The rule is" r)
               (do (println "Yea, might be the rule, except it isn't.") (recur zj r cache)))
             (do (println "This can't be the rule, because it contradicts" contradict) (recur zj r cache))))
