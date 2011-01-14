@@ -1,47 +1,56 @@
 ;; regex part
-(defn parse-koan [s] (re-matches #"^[abc]{3}$" s))
-(defn parse-rule [s]
-  (let [mat (re-matches #"^/(.{0,60})/$" s)]
-    (if mat (re-pattern (second mat)))))
-(defn true-koan? [rule koan] (not (empty? (re-find rule koan))))
-(defn generate-koans [] (for [x "abc" y "abc" z "abc"] (str x y z)))
-(def library [
-              [#"^a"      {"abc" true, "cba" false}]
-              [#"^b"      {"bcb" true, "aba" false}]
-              [#"^c"      {"ccb" true, "bba" false}]
-              [#"aaa"     {"aaa" true, "aba" false}]
-              [#"[ab]{3}" {"aba" true, "cba" false}]
-              [#"c.c"     {"ccc" true, "abc" false}]
-              ])
+(defn regex3-game []
+  {:welcome-msg (str "You are playing the regex3 game. Koans are simple 3-"
+                     "letter strings which may only consist of a combination "
+                     "of the letters a, b and c. Please state the rule as a "
+                     "regular expressions in the form /rule/.")
+   :parse-koan #(re-matches #"^[abc]{3}$" %)
+   :parse-rule #(let [mat (re-matches #"^/(.{0,60})/$" %)]
+                  (if mat (re-pattern (second mat))))
+   :true-koan? (fn [rule koan] (not (empty? (re-find rule koan))))
+   :generate-koans #(for [x "abc" y "abc" z "abc"] (str x y z))
+   :library [
+             [#"^a"      {"abc" true, "cba" false}]
+             [#"^b"      {"bcb" true, "aba" false}]
+             [#"^c"      {"ccb" true, "bba" false}]
+             [#"aaa"     {"aaa" true, "aba" false}]
+             [#"[ab]{3}" {"aba" true, "cba" false}]
+             [#"c.c"     {"ccc" true, "abc" false}]
+             ]
+   })
 
 ;; zenjure part
-(defn validate-library [] 
+(defn validate-library [zj] 
   (let [invalid-entries (filter 
-                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v (true-koan? r k)))) ex))))
-                          library)]
+                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((zj :true-koan?) r k)))) ex))))
+                          (zj :library))]
     (if (not (empty? invalid-entries))
       (println "Warning: Invalid examples in the library:" invalid-entries))))
 
-(defn console-line [r cache]
+;; console part
+(defn console-line [zj r cache]
   (let [input (do (print ">>> ") (flush) (read-line))
-        koan (parse-koan input)
-        rule (parse-rule input)]
+        koan ((zj :parse-koan) input)
+        rule ((zj :parse-rule) input)]
     (if koan
-      (let [ncache (assoc cache koan (true-koan? r koan))]
+      (let [ncache (assoc cache koan ((zj :true-koan?) r koan))]
         (println (ncache koan))
-        (recur r ncache))
+        (recur zj r ncache))
       (if rule
-        (let [contradict (filter (fn [[k v]] (not (= v (true-koan? rule k)))) cache)]
+        (let [contradict (filter (fn [[k v]] (not (= v ((zj :true-koan?) rule k)))) cache)]
           (if (empty? contradict)
-            (if (empty? (filter #(not (= (true-koan? r %) (true-koan? rule %))) (generate-koans)))
+            (if (empty? (filter #(not (= ((zj :true-koan?) r %) ((zj :true-koan?) rule %))) ((zj :generate-koans))))
               (println "Congrats, you reached enlightment! The rule is" r)
-              (do (println "Yea, might be the rule, except it isn't.") (recur r cache)))
-            (do (println "This can't be the rule, because it contradicts" contradict) (recur r cache))))
-        (recur r cache)))))
+              (do (println "Yea, might be the rule, except it isn't.") (recur zj r cache)))
+            (do (println "This can't be the rule, because it contradicts" contradict) (recur zj r cache))))
+        (recur zj r cache)))))
 
-(defn start-game [r cache]
-  (println "Guess the rule from the examples" cache)
-  (console-line r cache))
+(defn console-game [zj]
+  (println (str "Zenjure single-player console game\n\n" (zj :welcome-msg) "\n"))
+  (validate-library zj)
+  (let [[rule cache] (second (zj :library))] ; future: (rand-nth (zj :library))
+    (println "Guess the rule from the examples" cache)
+    (console-line zj rule cache)))
 
-(validate-library)
-(apply start-game (second library)) ; (randnth library)
+;; main part
+(console-game (regex3-game))
