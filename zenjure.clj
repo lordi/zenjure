@@ -1,5 +1,9 @@
-;; zenjure.games.regex3
-(defn regex3-game []
+;;
+;; zenjure.games
+;;
+(ns zenjure.games)
+
+(defn regex3 []
   {:welcome-msg (str "You are playing the regex3 game. Koans are simple 3-"
                      "letter strings which may only consist of a combination "
                      "of the letters a, b and c. Please state the rule as a "
@@ -22,28 +26,26 @@
 ;;
 ;; zenjure.core
 ;;
-(defn validate-library [z] 
-  (let [invalid-entries (filter 
-                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((:true? z) r k)))) ex))))
-                          (:library z))]
-    (if (not (empty? invalid-entries))
-      (println "Warning: Invalid examples in the library:" invalid-entries))))
+(ns zenjure.core)
 
 (defn equal-rule? [z r1 r2]
-  (every? #(= ((:true? z) r1 %) ((:true? z) r2 %)) ((:generate-koans z))))
+  (let [t (:true? z) k ((:generate-koans z))]
+    (every? #(= (t r1 %) (t r2 %)) k)))
 
 
 
 ;;
 ;; zenjure.console
 ;;
+(ns zenjure.console (:refer zenjure.core))
+
 (defn print-cache [cache]
   (println "True:\t" (for [[k s] cache :when (true? s)] k))
   (println "False:\t" (for [[k s] cache :when (false? s)] k)))
 
 (defn print-add-koan [z cache rule koan]
   (let [ncache (assoc cache koan ((:true? z) rule koan))]
-          (println (ncache koan)) ncache))
+    (println (ncache koan)) ncache))
 
 (defn console-line [z r cache]
   (let [input (do (print ">>> ") (flush) (read-line))
@@ -53,12 +55,12 @@
       (= input "cache") (do (print-cache cache) (recur z r cache))
       (not(nil? koan)) (recur z r (print-add-koan z cache r koan))
       (not(nil? rule))
-        (let [contra (filter (fn [[k v]] (not (= v ((:true? z) rule k)))) cache)]
-          (if (empty? contra)
-            (if (equal-rule? z r rule)
-              (println "Congrats, you reached enlightment! The rule is" r)
-              (do (println "Yea, might be the rule, except it isn't.") (recur z r cache)))
-            (do (println "Can't be it, because" rule "contradicts" contra) (recur z r cache))))
+      (let [contra (filter (fn [[k v]] (not (= v ((:true? z) rule k)))) cache)]
+        (if (empty? contra)
+          (if (equal-rule? z r rule)
+            (println "Congrats, you reached enlightment! The rule is" r)
+            (do (println "Yea, might be the rule, except it isn't.") (recur z r cache)))
+          (do (println "Can't be it, because" rule "contradicts" contra) (recur z r cache))))
       true (recur z r cache))))
 
 (defn console-game [z]
@@ -70,5 +72,5 @@
       (console-line z rule cache))
     (recur (rest lib))))
 
-(console-game (regex3-game))
+(console-game (zenjure.games/regex3))
 
