@@ -1,4 +1,4 @@
-;; regex part
+;; zenjure.games.regex3
 (defn regex3-game []
   {:welcome-msg (str "You are playing the regex3 game. Koans are simple 3-"
                      "letter strings which may only consist of a combination "
@@ -9,48 +9,66 @@
                   (if mat (re-pattern (second mat))))
    :true? (fn [rule koan] (not (empty? (re-find rule koan))))
    :generate-koans #(for [x "abc" y "abc" z "abc"] (str x y z))
-   :library [
-             [#"^a"      {"abc" true, "cba" false}]
-             [#"^b"      {"bcb" true, "aba" false}]
-             [#"^c"      {"ccb" true, "bba" false}]
-             [#"aaa"     {"aaa" true, "aba" false}]
-             [#"[ab]{3}" {"aba" true, "cba" false}]
-             [#"c.c"     {"ccc" true, "abc" false}]
-             ]
+   :library (shuffle (seq [
+                           [#"^a"      {"abc" true, "cba" false}]
+                           [#"^b"      {"bcb" true, "aba" false}]
+                           [#"^c"      {"ccb" true, "bba" false}]
+                           [#"aaa"     {"aaa" true, "aba" false}]
+                           [#"[ab]{3}" {"aba" true, "cba" false}]
+                           [#"c.c"     {"ccc" true, "abc" false}]
+                           ]))
    })
 
-;; zenjure part
-(defn validate-library [zj] 
+;;
+;; zenjure.core
+;;
+(defn validate-library [z] 
   (let [invalid-entries (filter 
-                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((zj :true?) r k)))) ex))))
-                          (zj :library))]
+                          (fn [[r, ex]] (not (empty? (filter (fn [[k v]] (not (= v ((:true? z) r k)))) ex))))
+                          (:library z))]
     (if (not (empty? invalid-entries))
       (println "Warning: Invalid examples in the library:" invalid-entries))))
 
-;; console part
-(defn console-line [zj r cache]
+(defn equal-rule? [z r1 r2]
+  (every? #(= ((:true? z) r1 %) ((:true? z) r2 %)) ((:generate-koans z))))
+
+
+
+;;
+;; zenjure.console
+;;
+(defn print-cache [cache]
+  (println "True:\t" (for [[k s] cache :when (true? s)] k))
+  (println "False:\t" (for [[k s] cache :when (false? s)] k)))
+
+(defn print-add-koan [z cache rule koan]
+  (let [ncache (assoc cache koan ((:true? z) rule koan))]
+          (println (ncache koan)) ncache))
+
+(defn console-line [z r cache]
   (let [input (do (print ">>> ") (flush) (read-line))
-        koan ((zj :parse-koan) input)
-        rule ((zj :parse-rule) input)]
-    (if koan
-      (let [ncache (assoc cache koan ((zj :true?) r koan))]
-        (println (ncache koan))
-        (recur zj r ncache))
-      (if rule
-        (let [contradict (filter (fn [[k v]] (not (= v ((zj :true?) rule k)))) cache)]
-          (if (empty? contradict)
-            (if (empty? (filter #(not (= ((zj :true?) r %) ((zj :true?) rule %))) ((zj :generate-koans))))
+        koan ((:parse-koan z) input)
+        rule ((:parse-rule z) input)]
+    (cond
+      (= input "cache") (do (print-cache cache) (recur z r cache))
+      (not(nil? koan)) (recur z r (print-add-koan z cache r koan))
+      (not(nil? rule))
+        (let [contra (filter (fn [[k v]] (not (= v ((:true? z) rule k)))) cache)]
+          (if (empty? contra)
+            (if (equal-rule? z r rule)
               (println "Congrats, you reached enlightment! The rule is" r)
-              (do (println "Yea, might be the rule, except it isn't.") (recur zj r cache)))
-            (do (println "This can't be the rule, because it contradicts" contradict) (recur zj r cache))))
-        (recur zj r cache)))))
+              (do (println "Yea, might be the rule, except it isn't.") (recur z r cache)))
+            (do (println "Can't be it, because" rule "contradicts" contra) (recur z r cache))))
+      true (recur z r cache))))
 
-(defn console-game [zj]
-  (println (str "Zenjure single-player console game\n\n" (zj :welcome-msg) "\n"))
-  (validate-library zj)
-  (let [[rule cache] (second (zj :library))] ; future: (rand-nth (zj :library))
-    (println "Guess the rule from the examples" cache)
-    (console-line zj rule cache)))
+(defn console-game [z]
+  (println (str "Zenjure single-player console game\n\n" (:welcome-msg z)))
+  (loop [lib (:library z)]
+    (let [[rule cache] (first lib)]
+      (println "\nGuess the rule from the following examples.")
+      (print-cache cache)
+      (console-line z rule cache))
+    (recur (rest lib))))
 
-;; main part
 (console-game (regex3-game))
+
