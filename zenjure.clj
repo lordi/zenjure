@@ -9,7 +9,7 @@
                      "of the letters a, b and c. Please state the rule as a "
                      "regular expressions in the form /rule/.")
    :parse-koan #(re-matches #"^[abc]{3}$" %)
-   :parse-rule #(let [mat (re-matches #"^/(.{0,60})/$" %)]
+   :parse-rule #(let [mat (re-find #"/(.{0,60})/" %)]
                   (if mat (re-pattern (second mat))))
    :true? (fn [rule koan] (not (empty? (re-find rule koan))))
    :generate-koans #(for [x "abc" y "abc" z "abc"] (str x y z))
@@ -22,6 +22,13 @@
                            [#"c.c"     {"ccc" true, "abc" false}]
                            ]))
    })
+
+(defn clojnum []
+  {:welcome-msg (str "zenjure-clojnum game")
+   :parse-koan #(try (read-string %) (catch Exception e ('nil)))
+   :parse-rule #(try (read-string %) (catch Exception e ('nil)))
+   :true? (fn [r k] 
+
 
 ;;
 ;; zenjure.core
@@ -72,5 +79,36 @@
       (console-line z rule cache))
     (recur (rest lib))))
 
-(console-game (zenjure.games/regex3))
+;;(console-game (zenjure.games/regex3))
+
+;;
+;; zenjure.tests
+;;
+(ns zenjure.tests
+  (:refer zenjure.core)
+  (:use clojure.test))
+
+(defn test-rule-equality [z rs1 rs2]
+  (is (equal-rule? z ((:parse-rule z) rs1) ((:parse-rule z) rs2))))
+
+(defn test-koan-true [z r k]
+  (is ((:true? z) ((:parse-rule z) r) ((:parse-koan z) k))))
+
+(deftest test-regex3 
+   (let [z (zenjure.games/regex3)]
+     (test-rule-equality z "/^a/" "  /a../stuff")
+     (test-rule-equality z "/aaa/" "/[^bc]{3}/  ")
+     (test-koan-true z "/^a/" "abc")
+     (test-koan-true z "/a/" "bba")
+     (test-koan-true z "/^a/" "abc")
+     ))
+
+(deftest test-clojnum
+   (let [z (zenjure.games/clojnum)]
+     (test-koan-true z "(= 1 1)" "[1 2 3]")
+     (test-rule-equality z "(> (first %) (last %))" "(< (last %) (first %))")
+     ))
+
+(run-tests 'zenjure.tests)
+
 
