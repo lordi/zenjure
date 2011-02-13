@@ -1,0 +1,5 @@
+(use 'clojure.test)
+(require 'zenjure.games.regex3)
+(require 'zenjure.games.clojnum)
+(run-tests 'zenjure.games.regex3)
+(run-tests 'zenjure.games.clojnum)
