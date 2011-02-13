@@ -25,12 +25,15 @@
                            ]))
    })
 
-(deftest test-regex3 
-   (let [z (zenjure.games.regex3/init)]
-     (is (test-rule-equality z "/^a/" "  /a../stuff"))
-     (is (test-rule-equality z "/aaa/" "/[^bc]{3}/  "))
-     (is (test-koan-true z "/^a/" "abc"))
-     (is (test-koan-true z "/a/" "bba"))
-     (is (test-koan-true z "/^a/" "abc"))
-    ))
+(deftest rule-equalities 
+         (let [z (init)]
+           (is (test-rule-equality z "/^a/" "  /a../stuff"))
+           (is (test-rule-equality z "/aaa/" "/[^bc]{3}/  "))
+           ))
 
+(deftest koan-truth
+         (let [z (init)]
+           (is (test-koan-true z "/^a/" "abc"))
+           (is (test-koan-true z "/a/" "bba"))
+           (is (test-koan-true z "/[^c]$/" "cba"))
+           ))
